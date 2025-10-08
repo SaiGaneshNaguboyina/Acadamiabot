@@ -144,5 +144,6 @@ Open a Pull Request.
 This project is open-source and available under the MIT License.
 
 📧 Contact
-For any questions or inquiries, please contact koushikkumarpasupuleti@gmail.com.
+For any questions or inquiries, please contact naguboyinasaiganesh@gmail.com.
+
 
