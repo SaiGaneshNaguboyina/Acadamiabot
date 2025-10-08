@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academia Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --bg-sidebar: #1f2937;
+            --text-primary: #1f2937;
+            --text-secondary: #ffffff;
+            --border-color: #d1d5db;
+            --chat-user-bg: #ffffff;
+            --chat-user-border: #d1d5db;
+            --chat-bot-text: #1f2937;
+            --chat-input-bg: #ffffff;
+            --chat-input-border: #d1d5db;
+        }
+        [data-theme="dark"] {
+            --bg-primary: #1a202c;
+            --bg-secondary: #2d3748;
+            --bg-sidebar: #1a202c;
+            --text-primary: #e2e8f0;
+            --text-secondary: #e2e8f0;
+            --border-color: #4a5568;
+            --chat-user-bg: #2d3748;
+            --chat-user-border: #4a5568;
+            --chat-bot-text: #e2e8f0;
+            --chat-input-bg: #2d3748;
+            --chat-input-border: #4a5568;
+        }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: sans-serif;
+        }
+        #sidebar {
+            background-color: var(--bg-sidebar);
+            color: var(--text-secondary);
+        }
+        #sidebar .menu-item {
+            color: var(--text-secondary);
+        }
+        #sidebar .menu-item:hover {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        #sidebar input {
+            background-color: var(--chat-input-bg);
+            color: var(--text-primary);
+            border-color: var(--chat-input-border);
+        }
+        #sidebar input::placeholder {
+            color: var(--text-primary);
+            opacity: 0.7;
+        }
+        header {
+            background-color: var(--bg-secondary);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        #header-welcome-message {
+            color: var(--text-primary);
+        }
+        #chat-area-container {
+            background-color: var(--bg-primary);
+        }
+        .user-message {
+            background-color: var(--chat-user-bg);
+            border: 1px solid var(--chat-user-border);
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .bot-message {
+            color: var(--chat-bot-text);
+        }
+        .input-area-bg {
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1), 0 -1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        #chat-input {
+            background-color: var(--chat-input-bg);
+            border: 1px solid var(--chat-input-border);
+            color: var(--text-primary);
+        }
+        #chat-input::placeholder {
+            color: var(--text-primary);
+            opacity: 0.7;
+        }
+        @keyframes scrollTextLTR {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX-(100%); }
+        }
+        .header-title {
+            white-space: nowrap;
+            overflow: hidden;
+            width: 100%;
+            display: block;
+            animation: scrollTextLTR 18s linear infinite;
+            line-height: 1.5;
+        }
+        .profile-overlay, .content-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        .profile-card, .content-card, .login-card {
+            background-color: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            color: var(--text-primary);
+        }
+        .login-card {
+            max-width: 400px;
+        }
+        #sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        #sidebar.sidebar-visible {
+            transform: translateX(0);
+        }
+        @media (min-width: 768px) {
+            #sidebar {
+                transform: translateX(0);
+                position: relative;
+                width: 16rem;
+            }
+            #sidebar.sidebar-visible {
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans" data-theme="light">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-full md:w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 rounded-r-lg">
+            <div class="flex justify-between items-center px-4 mb-6">
+                <div class="text-2xl font-bold">Academia Bot</div>
+                <button id="sidebar-close-btn" class="text-gray-400 hover:text-white focus:outline-none md:hidden">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <nav id="menu-items">
+                <div class="px-4 mb-4">
+                    <input type="text" id="search-bar" placeholder="Search menu items..." class="w-full p-2 rounded focus:outline-none">
+                </div>
+                <a href="#" class="block py-2.5 px-4 rounded hover:bg-gray-700 menu-item" data-name="New Chat" id="new-chat-btn"><i class="fas fa-plus mr-2"></i> New Chat</a>
+                <a href="#" class="block py-2.5 px-4 rounded hover:bg-gray-700 menu-item" data-name="Theme" id="theme-toggle">
+                    <i class="fas fa-sun mr-2" id="theme-icon"></i> Theme
+                </a>
+                <a href="#" class="block py-2.5 px-4 rounded hover:bg-gray-700 menu-item" data-name="Profile"><i class="fas fa-user mr-2"></i> Profile</a>
+                <input type="file" id="file-input" multiple style="display: none;">
+                <a href="#" class="block py-2.5 px-4 rounded hover:bg-gray-700 menu-item" data-name="Files"><i class="fas fa-folder mr-2"></i> Files</a>
+                <a href="#" class="block py-2.5 px-4 rounded hover:bg-gray-700 menu-item" data-name="Tasks"><i class="fas fa-tasks mr-2"></i> Tasks</a>
+                <a href="#" class="block py-2.5 px-4 rounded hover:bg-gray-700 menu-item" data-name="History"><i class="fas fa-history mr-2"></i> History</a>
+                <a href="#" class="block py-2.5 px-4 rounded hover:bg-gray-700 menu-item" data-name="Logout"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+            </nav>
+        </div>
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Header -->
+            <header class="p-4 flex items-center rounded-bl-lg">
+                <div class="flex-1 overflow-hidden">
+                    <h1 id="header-welcome-message" class="text-xl font-semibold header-title">Welcome to Academia Bot! How can I assist you today?</h1>
+                </div>
+            </header>
+            <!-- Chat Area -->
+            <div id="chat-area-container" class="flex-1 overflow-y-auto p-4">
+                <div class="max-w-3xl mx-auto" id="chat-messages"></div>
+            </div>
+            <!-- Input Area -->
+            <div class="p-4 border-t rounded-tl-lg input-area-bg">
+                <div class="max-w-3xl mx-auto flex">
+                    <input type="text" id="chat-input" placeholder="Type your message..." class="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="send-btn" class="bg-blue-500 text-white p-2 rounded-r-lg hover:bg-blue-600 transition duration-200 ease-in-out"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let searchHistory = [];
+        let hasUserAskedQuestion = false;
+        const sidebar = document.getElementById('sidebar');
+        const headerWelcomeMessage = document.getElementById('header-welcome-message');
+        const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const body = document.body;
+        const searchBar = document.getElementById('search-bar');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const sendBtn = document.getElementById('send-btn');
+        const chatInput = document.getElementById('chat-input');
+        const chatMessages = document.getElementById('chat-messages');
+        const profileMenuItem = document.querySelector('.menu-item[data-name="Profile"]');
+        const filesMenuItem = document.querySelector('.menu-item[data-name="Files"]');
+        const fileInput = document.getElementById('file-input');
+        const tasksMenuItem = document.querySelector('.menu-item[data-name="Tasks"]');
+        const historyMenuItem = document.querySelector('.menu-item[data-name="History"]');
+        const logoutMenuItem = document.querySelector('.menu-item[data-name="Logout"]');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        function removeActiveOverlay() {
+            const existingProfileDisplay = document.getElementById('profile-display');
+            if (existingProfileDisplay) existingProfileDisplay.remove();
+            const existingContentOverlay = document.getElementById('content-overlay');
+            if (existingContentOverlay) existingContentOverlay.remove();
+            const existingLoginOverlay = document.getElementById('login-overlay');
+            if (existingLoginOverlay) existingLoginOverlay.remove();
+        }
+        function updateSidebarVisibility() {
+            if (window.innerWidth >= 768) {
+                sidebar.classList.add('sidebar-visible');
+                headerWelcomeMessage.style.display = 'block';
+            } else {
+                sidebar.classList.remove('sidebar-visible');
+                if (!hasUserAskedQuestion) headerWelcomeMessage.style.display = 'block';
+            }
+        }
+        function setTheme(theme) {
+            body.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                themeIcon.classList.remove('fa-sun');
+                themeIcon.classList.add('fa-moon');
+            } else {
+                themeIcon.classList.remove('fa-moon');
+                themeIcon.classList.add('fa-sun');
+            }
+            const chatMessageParagraphs = chatMessages.querySelectorAll('.user-message p, .bot-message p');
+            chatMessageParagraphs.forEach(pTag => {
+                pTag.classList.remove('text-gray-800', 'text-white');
+                if (theme === 'dark') pTag.classList.add('text-white');
+                else pTag.classList.add('text-gray-800');
+            });
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+        });
+        themeToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            removeActiveOverlay();
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            setTheme(newTheme);
+            if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-visible')) {
+                sidebar.classList.remove('sidebar-visible');
+                updateSidebarVisibility();
+            }
+        });
+        sidebarCloseBtn.addEventListener('click', () => {
+            sidebar.classList.remove('sidebar-visible');
+            updateSidebarVisibility();
+            removeActiveOverlay();
+        });
+        window.addEventListener('resize', updateSidebarVisibility);
+        document.addEventListener('DOMContentLoaded', updateSidebarVisibility);
+        searchBar.addEventListener('input', () => {
+            const searchTerm = searchBar.value.trim().toLowerCase();
+            if (searchTerm && searchHistory[searchHistory.length - 1] !== searchTerm) {
+                searchHistory.push(searchTerm);
+            }
+            menuItems.forEach(item => {
+                const itemName = item.getAttribute('data-name').toLowerCase();
+                item.style.display = itemName.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+        sendBtn.addEventListener('click', async () => {
+            const message = chatInput.value.trim();
+            if (message) {
+                if (message && searchHistory[searchHistory.length - 1] !== message) {
+                    searchHistory.push(message);
+                }
+                if (!hasUserAskedQuestion) {
+                    headerWelcomeMessage.style.display = 'none';
+                    hasUserAskedQuestion = true;
+                }
+                const newUserMessage = document.createElement('div');
+                const userTextColorClass = body.getAttribute('data-theme') === 'dark' ? 'text-white' : 'text-gray-800';
+                newUserMessage.className = 'user-message p-4 rounded-lg shadow mb-4 text-right ml-auto max-w-[80%]';
+                newUserMessage.innerHTML = `<p class="${userTextColorClass}">${message}</p>`;
+                chatMessages.appendChild(newUserMessage);
+                chatInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message })
+                    });
+                    const data = await response.json();
+                    const botResponse = document.createElement('div');
+                    const botTextColorClass = body.getAttribute('data-theme') === 'dark' ? 'text-white' : 'text-gray-800';
+                    botResponse.className = 'bot-message mb-4 text-left mr-auto max-w-[70%]';
+                    botResponse.innerHTML = `<p class="${botTextColorClass} px-2 py-1">${data.response}</p>`;
+                    chatMessages.appendChild(botResponse);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } catch (err) {
+                    const botResponse = document.createElement('div');
+                    botResponse.className = 'bot-message mb-4 text-left mr-auto max-w-[70%]';
+                    botResponse.innerHTML = `<p class="text-red-500 px-2 py-1">Error: Unable to get response from server.</p>`;
+                    chatMessages.appendChild(botResponse);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+        });
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendBtn.click();
+        });
+        profileMenuItem.addEventListener('click', (e) => {
+            e.preventDefault();
+            removeActiveOverlay();
+            const profileDisplay = document.createElement('div');
+            profileDisplay.id = 'profile-display';
+            profileDisplay.className = 'profile-overlay';
+            const overlayTextColorClass = body.getAttribute('data-theme') === 'dark' ? 'text-white' : 'text-gray-800';
+            const username = window.loggedInUsername || 'User';
+            profileDisplay.innerHTML = `
+                <div class="profile-card">
+                    <p class="text-2xl font-bold mb-4 ${overlayTextColorClass}">Welcome, ${username}!</p>
+                    <p class="${overlayTextColorClass}">This is your profile information.</p>
+                    <button id="close-profile" class="mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 ease-in-out">Close</button>
+                </div>
+            `;
+            document.body.appendChild(profileDisplay);
+            document.getElementById('close-profile').addEventListener('click', () => {
+                profileDisplay.remove();
+            });
+            if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-visible')) {
+                sidebar.classList.remove('sidebar-visible');
+                updateSidebarVisibility();
+            }
+        });
+        filesMenuItem.addEventListener('click', (e) => {
+            e.preventDefault();
+            removeActiveOverlay();
+            fileInput.click();
+            fileInput.onchange = async (event) => {
+                const files = event.target.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const uploadingMsg = document.createElement('div');
+                    uploadingMsg.className = 'bot-message mb-4 text-left mr-auto max-w-[70%]';
+                    uploadingMsg.innerHTML = `<p class="text-blue-500 px-2 py-1">Uploading ${file.name}...</p>`;
+                    chatMessages.appendChild(uploadingMsg);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    try {
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        const resultMsg = document.createElement('div');
+                        resultMsg.className = 'bot-message mb-4 text-left mr-auto max-w-[70%]';
+                        if (data.success) {
+                            resultMsg.innerHTML = `<p class="text-green-600 px-2 py-1">File "${data.filename}" uploaded.<br>Preview:<br>${data.result}</p>`;
+                        } else {
+                            resultMsg.innerHTML = `<p class="text-red-500 px-2 py-1">Error: ${data.message}</p>`;
+                        }
+                        chatMessages.appendChild(resultMsg);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (err) {
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'bot-message mb-4 text-left mr-auto max-w-[70%]';
+                        errorMsg.innerHTML = `<p class="text-red-500 px-2 py-1">Error uploading file.</p>`;
+                        chatMessages.appendChild(errorMsg);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }
+                }
+                fileInput.value = '';
+            };
+            if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-visible')) {
+                sidebar.classList.remove('sidebar-visible');
+                updateSidebarVisibility();
+            }
+        });
+       tasksMenuItem.addEventListener('click', (e) => {
+    e.preventDefault();
+    removeActiveOverlay();
+    const contentOverlay = document.createElement('div');
+    contentOverlay.id = 'content-overlay';
+    contentOverlay.className = 'content-overlay';
+    const overlayTextColorClass = body.getAttribute('data-theme') === 'dark' ? 'text-white' : 'text-gray-800';
+    const linkColorClass = body.getAttribute('data-theme') === 'dark' ? 'text-blue-300' : 'text-blue-500';
+    const universityUrl = "https://www.nagarjunauniversity.ac.in";
+    contentOverlay.innerHTML = `
+        <div class="content-card">
+            <h2 class="text-2xl font-bold mb-4 ${overlayTextColorClass}">Frequently Asked Questions & University Data</h2>
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold mb-2 ${overlayTextColorClass}">FAQs:</h3>
+                <ul class="list-disc list-inside ${overlayTextColorClass}">
+                    <li>
+                        <a href="${universityUrl}" target="_blank" class="${linkColorClass} hover:underline font-bold">
+                            Q: How do I apply for admissions?
+                        </a>
+                        <br>
+                        A: Visit the university's official admissions portal and follow the step-by-step guide.
+                    </li>
+                    <li>
+                        <a href="${universityUrl}" target="_blank" class="${linkColorClass} hover:underline font-bold">
+                            Q: What are the library hours?
+                        </a>
+                        <br>
+                        A: The main library is open Monday-Friday, 8 AM - 10 PM; Saturday, 9 AM - 6 PM; Sunday, 1 PM - 5 PM.
+                    </li>
+                    <li>
+                        <a href="${universityUrl}" target="_blank" class="${linkColorClass} hover:underline font-bold">
+                            Q: Where can I find my course schedule?
+                        </a>
+                        <br>
+                        A: Your personalized course schedule is available on the student portal under the 'Academics' tab.
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold mb-2 ${overlayTextColorClass}">University Data:</h3>
+                <ul class="list-disc list-inside ${overlayTextColorClass}">
+                    <li><strong>University Name:</strong> Acharya Nagarjuna University</li>
+                    <li><strong>Established:</strong> 1976</li>
+                    <li><strong>Total Students:</strong> 10,000+</li>
+                    <li><strong>Main Campus Location:</strong> Guntur, Andhra Pradesh, India</li>
+                    <li><strong>Website:</strong> <a href="${universityUrl}" target="_blank" class="${linkColorClass} hover:underline">${universityUrl}</a></li>
+                </ul>
+            </div>
+            <button id="close-content" class="mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 ease-in-out">Close</button>
+        </div>
+    `;
+    document.body.appendChild(contentOverlay);
+    document.getElementById('close-content').addEventListener('click', () => {
+        contentOverlay.remove();
+    });
+    if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-visible')) {
+        sidebar.classList.remove('sidebar-visible');
+        updateSidebarVisibility();
+    }
+});
+        historyMenuItem.addEventListener('click', (e) => {
+            e.preventDefault();
+            removeActiveOverlay();
+            const contentOverlay = document.createElement('div');
+            contentOverlay.id = 'content-overlay';
+            contentOverlay.className = 'content-overlay';
+            const overlayTextColorClass = body.getAttribute('data-theme') === 'dark' ? 'text-white' : 'text-gray-800';
+            let historyListHtml = `<p class="${overlayTextColorClass}">No history yet.</p>`;
+            if (searchHistory.length > 0) {
+                historyListHtml = `<ul class="list-disc list-inside ${overlayTextColorClass}">`;
+                searchHistory.forEach((item, index) => {
+                    historyListHtml += `<li>${index + 1}. ${item}</li>`;
+                });
+                historyListHtml += '</ul>';
+            }
+            contentOverlay.innerHTML = `
+                <div class="content-card">
+                    <h2 class="text-2xl font-bold mb-4 ${overlayTextColorClass}">Your Session History</h2>
+                    ${historyListHtml}
+                    <button id="close-content" class="mt-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 ease-in-out">Close</button>
+                </div>
+            `;
+            document.body.appendChild(contentOverlay);
+            document.getElementById('close-content').addEventListener('click', () => {
+                contentOverlay.remove();
+            });
+            if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-visible')) {
+                sidebar.classList.remove('sidebar-visible');
+                updateSidebarVisibility();
+            }
+        });
+        logoutMenuItem.addEventListener('click', (e) => {
+            e.preventDefault();
+            removeActiveOverlay();
+            window.location.href = '/logout';
+            if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-visible')) {
+                sidebar.classList.remove('sidebar-visible');
+                updateSidebarVisibility();
+            }
+        });
+        newChatBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            removeActiveOverlay();
+            chatMessages.innerHTML = '';
+            searchHistory = [];
+            hasUserAskedQuestion = false;
+            headerWelcomeMessage.style.display = 'block';
+            headerWelcomeMessage.classList.add('header-title');
+            const newSessionWelcome = document.createElement('div');
+            newSessionWelcome.className = 'bg-white p-4 rounded-lg shadow mb-4';
+            newSessionWelcome.innerHTML = `<p class="text-gray-800">New chat started! How can I assist you today?</p>`;
+            chatMessages.appendChild(newSessionWelcome);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            if (window.innerWidth < 768 && sidebar.classList.contains('sidebar-visible')) {
+                sidebar.classList.remove('sidebar-visible');
+                updateSidebarVisibility();
+            }
+        });
+        window.loggedInUsername = "{{ username }}";
+        if (window.loggedInUsername) {
+            console.log(`Logged in as: ${window.loggedInUsername}`);
+        } else {
+            console.log('No user logged in.');
+        }
+    </script>
+</body>
+</html>
